@@ -152,7 +152,7 @@ var projectPageComp = {
     },
     updated: function(){
         // because materialize is stupid
-        var unorderedLists = document.querySelectorAll('ul');
+        var unorderedLists = document.getElementById("readmeDiv").querySelectorAll('ul');
         console.log(unorderedLists)
         unorderedLists.forEach( element => {
             element.classList.add("browser-default");

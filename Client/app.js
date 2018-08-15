@@ -154,9 +154,13 @@ var projectPageComp = {
     created: function () {
         console.log(this.creation);
         if(!this.creation){
-            this.fetchProject();
+            this.fetchProject().then(res => {
+                this.project = res.data
+                this.fetchTags();
+            })
+        }else{
+            this.fetchTags();
         }
-        this.fetchTags();
     },
     mounted: function(){
         this.simplemde = new SimpleMDE({element: document.getElementById("readmeEditor")});
@@ -165,7 +169,6 @@ var projectPageComp = {
     updated: function(){
         // because materialize is stupid
         var unorderedLists = document.getElementById("readmeDiv").querySelectorAll('ul');
-        console.log(unorderedLists)
         unorderedLists.forEach( element => {
             element.classList.add("browser-default");
         });
@@ -202,7 +205,6 @@ var projectPageComp = {
                 if(!this.editing){
                     this.project.readme = this.simplemde.value()
                     this.project.tags = this.tagAutocompleteObject().chipsData.map(chip => ({name: chip.tag}));
-                    console.log(this.project.tags[0].name)
                     axios.put("http://localhost:3000/projects/" + this.project.id, this.project).then(response => {
                         console.log(response);
                     }).catch(error => {
@@ -212,7 +214,6 @@ var projectPageComp = {
                 }else{
                     M.textareaAutoResize(document.getElementById("descriptionEditor"))
                     this.simplemde.value(this.project.readme);
-                    console.log(this.tagAutocompleteObject());
                 }
             }
             
@@ -221,9 +222,10 @@ var projectPageComp = {
             return str === "";
         },
         fetchProject(){
-            axios.get("http://localhost:3000/projects/" + this.id).then(response => {
-                this.project = response.data;
-            })
+            // axios.get("http://localhost:3000/projects/" + this.id).then(response => {
+            //     this.project = response.data;
+            // })
+            return axios.get("http://localhost:3000/projects/" + this.id);
         },
         fetchTags(){
             axios.get("http://localhost:3000/autotags").then(response => {

@@ -156,9 +156,11 @@ var projectPageComp = {
         if(!this.creation){
             this.fetchProject();
         }
+        this.fetchTags();
     },
     mounted: function(){
-        this.simplemde = new SimpleMDE({element: document.getElementById("readmeEditor")})
+        this.simplemde = new SimpleMDE({element: document.getElementById("readmeEditor")});
+        this.tagAutocompleteElement = document.getElementById("chipAutoComplete");
     },
     updated: function(){
         // because materialize is stupid
@@ -187,6 +189,7 @@ var projectPageComp = {
                 axios.get("http://localhost:3000/nextid").then(response => {
                     this.project.id = response.data.nextid;
                     this.project.readme = this.simplemde.value()
+                    this.project.tags = this.tagAutocompleteObject().chipsData.map(chip => ({name: chip.tag}));
                     axios.post("http://localhost:3000/projects/" + this.project.id, this.project).then(response => {
                         console.log(response);
                         router.push({path: '/project/' + this.project.id});
@@ -198,6 +201,8 @@ var projectPageComp = {
             }else{
                 if(!this.editing){
                     this.project.readme = this.simplemde.value()
+                    this.project.tags = this.tagAutocompleteObject().chipsData.map(chip => ({name: chip.tag}));
+                    console.log(this.project.tags[0].name)
                     axios.put("http://localhost:3000/projects/" + this.project.id, this.project).then(response => {
                         console.log(response);
                     }).catch(error => {
@@ -207,6 +212,7 @@ var projectPageComp = {
                 }else{
                     M.textareaAutoResize(document.getElementById("descriptionEditor"))
                     this.simplemde.value(this.project.readme);
+                    console.log(this.tagAutocompleteObject());
                 }
             }
             
@@ -218,6 +224,22 @@ var projectPageComp = {
             axios.get("http://localhost:3000/projects/" + this.id).then(response => {
                 this.project = response.data;
             })
+        },
+        fetchTags(){
+            axios.get("http://localhost:3000/autotags").then(response => {
+                var mappedData = this.project.tags.map(tag => ({tag: tag.name, image: ''}));
+                M.Chips.init(this.tagAutocompleteElement, {
+                    data: mappedData,
+                    autocompleteOptions: {
+                        data: response.data.autotags,
+                        limit: Infinity,
+                        minLength: 1
+                    }
+                })
+            });
+        },
+        tagAutocompleteObject(){
+            return M.Chips.getInstance(this.tagAutocompleteElement);
         }
     },
     data: function() {
@@ -230,12 +252,14 @@ var projectPageComp = {
                 readme: "",
                 tags: []
             },
-            simplemde: null
+            simplemde: null,
+            tagAutocompleteElement: null,
         };
     },
     components: {
         "divider": dividerComp,
         "sect": sectionComp,
+        'chip': chipComp,
     },
     template:`
         <div>
@@ -250,6 +274,14 @@ var projectPageComp = {
                 <p v-if="!editing || !canEdit">{{project.description}}</p>
                 <textarea v-show="editing && canEdit" v-model="project.description" id="descriptionEditor" class="materialize-textarea"></textarea>
                 <p v-if="empty(project.description) && !editing">No description</p>
+            </sect>
+            <divider/>
+            <sect>
+                <h5>Tags</h5>
+                <div v-if="!editing || !canEdit">
+                    <chip v-for="tag in project.tags" :text="tag.name"/>
+                </div>
+                <div v-show="editing && canEdit" class="chips chips-autocomplete" id="chipAutoComplete"></div>
             </sect>
             <divider/>
             <sect>
@@ -294,7 +326,6 @@ const routes = [
     { path: '/home', component: homePageComp },
     { path: '/project/:id', component: projectPageComp, props: {creation: false} },
     { path: '/create', component: projectPageComp, props: {creation: true} },
-
 ]
 
 const router = new VueRouter({

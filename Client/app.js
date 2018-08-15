@@ -25,6 +25,9 @@ var navComp = {
                     <li>
                         <router-link to="/home">Home</router-link>
                     </li>
+                    <li>
+                        <router-link to="/create">Create</router-link>
+                    </li>
                 </ul>
 
             </div>
@@ -34,6 +37,9 @@ var navComp = {
                 </li>
                 <li>
                     <router-link to="/home">Home</router-link>
+                </li>
+                <li>
+                    <router-link to="/create">Create</router-link>
                 </li>
                 <!--<li>
                     <form>
@@ -144,8 +150,12 @@ var projectCardComp = {
 }
 
 var projectPageComp = {
+    props: ['creation'],
     created: function () {
-        this.fetchProject();
+        console.log(this.creation);
+        if(!this.creation){
+            this.fetchProject();
+        }
     },
     mounted: function(){
         this.simplemde = new SimpleMDE({element: document.getElementById("readmeEditor")})
@@ -173,18 +183,33 @@ var projectPageComp = {
         toggleEdit(){
             this.editing = !this.editing
             
-            if(!this.editing){
-                this.project.readme = this.simplemde.value()
-                axios.put("http://localhost:3000/projects/" + this.id, this.project).then(response => {
-                    console.log(response);
-                }).catch(error => {
-                    console.log("ERROR")
-                    console.log(error);
-                })
+            if(this.creation && !this.editing){
+                axios.get("http://localhost:3000/nextid").then(response => {
+                    this.project.id = response.data.nextid;
+                    this.project.readme = this.simplemde.value()
+                    axios.post("http://localhost:3000/projects/" + this.project.id, this.project).then(response => {
+                        console.log(response);
+                        router.push({path: '/project/' + this.project.id});
+                    }).catch(error => {
+                        console.log("ERROR")
+                        console.log(error);
+                    })
+                });
             }else{
-                M.textareaAutoResize(document.getElementById("descriptionEditor"))
-                this.simplemde.value(this.project.readme);
+                if(!this.editing){
+                    this.project.readme = this.simplemde.value()
+                    axios.put("http://localhost:3000/projects/" + this.project.id, this.project).then(response => {
+                        console.log(response);
+                    }).catch(error => {
+                        console.log("ERROR")
+                        console.log(error);
+                    })
+                }else{
+                    M.textareaAutoResize(document.getElementById("descriptionEditor"))
+                    this.simplemde.value(this.project.readme);
+                }
             }
+            
         },
         empty(str){
             return str === "";
@@ -199,7 +224,7 @@ var projectPageComp = {
         return {
             editing: false,
             project: {
-                id: 0, 
+                id: -1, 
                 title: "", 
                 description: "",
                 readme: "",
@@ -216,7 +241,8 @@ var projectPageComp = {
         <div>
             <div>
                 <a class="btn-floating btn-large waves-effect waves-light red right" v-if="canEdit" v-on:click="toggleEdit()"><i class="material-icons">edit</i></a>
-                <h3>{{project.title}}</h3>
+                <h3 v-if="!editing || !canEdit">{{project.title}}</h3>
+                <textarea v-show="editing && canEdit" v-model="project.title" id="titleEditor" class="materialize-textarea"></textarea>
             </div>
             <divider/>
             <sect>
@@ -266,7 +292,9 @@ var homePageComp = {
 const routes = [
     { path: '/', component: homePageComp },
     { path: '/home', component: homePageComp },
-    { path: '/project/:id', component: projectPageComp }
+    { path: '/project/:id', component: projectPageComp, props: {creation: false} },
+    { path: '/create', component: projectPageComp, props: {creation: true} },
+
 ]
 
 const router = new VueRouter({

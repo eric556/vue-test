@@ -82,6 +82,8 @@ var projectList = {
     ]
 }
 
+var next_id = 6
+
 app.get('/projects', function(req, res){
     res.json(projectList.projects);
 })
@@ -92,12 +94,22 @@ app.get('/projects/:id', function (req, res) {
     }));
 })
 
+app.get('/nextid', (req, res) => {
+    res.json({nextid: next_id});
+    next_id++;
+});
+
 app.put('/projects/:id', function(req, res){
     var item = projectList.projects.find(project => {
         return project.id == req.params.id;
     });
     var index = projectList.projects.indexOf(item)
     projectList.projects[index] = req.body;
+    res.send("thanks!")
+})
+
+app.post('/projects/:id', function(req, res){
+    projectList.projects.push(req.body);
     res.send("thanks!")
 })
 
